@@ -6,6 +6,7 @@ import { Column } from 'primereact/column';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
+import { Message } from 'primereact/message'
 import { Button } from 'primereact/button';
 import { InputSwitch } from 'primereact/inputswitch';
 import { Growl } from 'primereact/growl';
@@ -26,6 +27,9 @@ class BikeSellerList extends Component {
         this.save = this.save.bind(this);
         this.delete = this.delete.bind(this);       
         this.update = this.update.bind(this);
+        this.validate = this.validate.bind(this);
+        this.canBeSubmitted = this.canBeSubmitted.bind(this);
+        
     }
 
     componentDidMount() {
@@ -45,6 +49,10 @@ class BikeSellerList extends Component {
     }
 
     updateProperty(property, value) {
+
+        let touched = this.state.touched;
+        touched[property]=true;
+        this.setState({ touched: touched });
         let bikeSeller = this.state.bikeSeller;
         if(property==="role"){
             bikeSeller.roleId=value.id;
@@ -61,13 +69,45 @@ class BikeSellerList extends Component {
         this.newBikeSeller = false;
         this.setState({
             displayDialog: true,
-            bikeSeller: Object.assign({}, e.data)
+            bikeSeller: Object.assign({}, e.data),
+            touched: {
+                nit:false,
+	            fullName:false,
+	            address:false,
+	            phone: false,                               
+	            penaltyPercentage:false
+            }            
         });
     }
 
     dialogHide() {
         this.setState({ displayDialog: false });
     }
+
+    validate(nit, fullName, phone, address, role,penaltyPercentage) {
+        // true means invalid, so our conditions got reversed
+        return {
+            nit: nit.length === 0,
+            fullName: fullName.length === 0,
+            phone: phone === 0 || phone.length===0,
+            address: address.length === 0,
+            penaltyPercentage: penaltyPercentage<=0.0 || penaltyPercentage > 100.0 || penaltyPercentage.length===0,
+            role: role == null
+        };
+    }
+
+    canBeSubmitted() {
+        if(this.state.displayDialog){
+            const errors = this.validate(this.state.bikeSeller.nit, this.state.bikeSeller.fullName,
+                this.state.bikeSeller.phone,this.state.bikeSeller.address,this.state.bikeSeller.role,
+                this.state.bikeSeller.penaltyPercentage);
+            const isDisabled = Object.keys(errors).some(x => errors[x]);
+            return isDisabled;
+        }
+    }
+
+    
+    
 
     addNew() {        
         this.newBikeSeller = true;        
@@ -80,8 +120,15 @@ class BikeSellerList extends Component {
                 roleId: null,
                 role:null,                
 	            penaltyPercentage:"",
-	            status:""
-            },
+	            status:"deactivated"
+            }, 
+            touched: {
+                nit:false,
+	            fullName:false,
+	            address:false,
+	            phone: false,                               
+	            penaltyPercentage:false
+            },          
             displayDialog: true
         });
     }   
@@ -128,7 +175,7 @@ class BikeSellerList extends Component {
             
             <Button className="p-button-danger"  label="Delete" hidden={this.newBikeSeller ? true : false}
                 icon="pi pi-trash" onClick={this.delete}/>
-            <Button className="p-button-success" label={this.newBikeSeller ? "Save" : "Update"} icon="pi pi-check"
+            <Button className="p-button-success" disabled={this.canBeSubmitted()} label={this.newBikeSeller ? "Save" : "Update"} icon="pi pi-check"
                 onClick={this.newBikeSeller ? this.save : this.update } />
         </div>;
 
@@ -165,53 +212,60 @@ class BikeSellerList extends Component {
                            
                             <div><label htmlFor="NIT">NIT</label></div>
                             <div>
-                                <InputText id="NIT"  onChange={(e) => { this.updateProperty('nit', e.target.value) }}
+                                <InputText id="NIT" style={{width:'88%'}} keyfilter="int" maxLength="15" placeholder="e.g. 123456789-4" className={this.state.bikeSeller.nit === "" && this.state.touched.nit ? "p-error" : ""}  onChange={(e) => { this.updateProperty('nit', e.target.value) }}
                                     value={this.state.bikeSeller.nit} />
+                                    <Message severity="error" style={{float:'right',display: this.state.bikeSeller.nit === "" && this.state.touched.nit ? 'inline' : 'none'} } />
                             </div>
                            
 
                             <div style={{ paddingTop: '5px' }}>
                                 <label htmlFor="fullName">Full Name</label></div>
                             <div>
-                                <InputText id="fullName" keyfilter={/^[a-zA-Z\s]*$/} onChange={(e) => { this.updateProperty('fullName', e.target.value) }}
+                                <InputText id="fullName" placeholder="e.g. Mateo Hernandez" maxLength="100" style={{width:'88%'}} className={this.state.bikeSeller.fullName === "" && this.state.touched.fullName ? "p-error" : ""} keyfilter={/^[a-zA-Z\s]*$/} onChange={(e) => { this.updateProperty('fullName', e.target.value) }}
                                     value={this.state.bikeSeller.fullName} />
+                                    <Message severity="error" style={{float:'right',display: this.state.bikeSeller.fullName === "" && this.state.touched.fullName ? 'inline' : 'none'} } />
                             </div>
 
                             <div style={{ paddingTop: '5px' }}>
                                 <label htmlFor="address">Address</label></div>
                             <div>
-                                <InputText id="address" onChange={(e) => { this.updateProperty('address', e.target.value) }}
+                                <InputText id="address" placeholder="e.g. 2569 Austin avenue. Vancouver, Canada" maxLength="100" style={{width:'88%'}} className={this.state.bikeSeller.address === "" && this.state.touched.address ? "p-error" : ""} onChange={(e) => { this.updateProperty('address', e.target.value) }}
                                     value={this.state.bikeSeller.address} />
+                                    <Message severity="error" style={{float:'right',display: this.state.bikeSeller.address === "" && this.state.touched.address ? 'inline' : 'none'} } />
                             </div>
 
                             <div style={{ paddingTop: '5px' }}>
                                 <label htmlFor="phone">Phone</label></div>
                             <div>
-                                <InputText id="phone" keyfilter="int" onChange={(e) => { this.updateProperty('phone', parseInt(e.target.value, 10)) }}
+                                <InputText id="phone" placeholder="e.g. 9998886655" maxLength="15" style={{width:'88%'}} className={this.state.bikeSeller.phone === "" && this.state.touched.phone ? "p-error" : ""} keyfilter="int" onChange={(e) => { this.updateProperty('phone', e.target.value !=="" ? parseInt(e.target.value, 10):"") }}
                                     value={this.state.bikeSeller.phone} />
+                                    <Message severity="error" style={{float:'right',display: this.state.bikeSeller.phone === "" && this.state.touched.phone ? 'inline' : 'none'} } />
                             </div>        
                             
 
                             <div style={{ paddingTop: '5px' }}>
                                 <label htmlFor="role">Role</label></div>
-                            <div>
+                            <div style={{width:'88%'}}>
                                 
-                                <Dropdown optionLabel="roleName"  value={this.state.bikeSeller.role} options={this.props.roles}
+                                <Dropdown optionLabel="roleName" value={this.state.bikeSeller.role} options={this.props.roles}
 					                onChange={e => {this.updateProperty('role', e.target.value) }} placeholder='Select a role'	/>
+                                    
                             </div>
 
                             <div style={{ paddingTop: '5px' }}>
                                 <label htmlFor="penaltyPercentage">Penalty percentage</label></div>
                             <div>
-                                <InputText id="penaltyPercentage" disabled={this.newBikeSeller ? false : true} keyfilter="num" onChange={(e) => { this.updateProperty('penaltyPercentage', parseInt(e.target.value,10)) }}
+                                <InputText id="penaltyPercentage" keyfilter="num" maxLength="3" placeholder="e.g. 15" style={{width:'88%'}} className={(this.state.bikeSeller.penaltyPercentage >100.0 || this.state.bikeSeller.penaltyPercentage<0.0 || this.state.bikeSeller.penaltyPercentage === "") && this.state.touched.penaltyPercentage ? "p-error" : ""}
+                                 disabled={this.newBikeSeller ? false : true} onChange={(e) => { this.updateProperty('penaltyPercentage', e.target.value !=="" ? parseFloat(e.target.value, 10):"") }}
                                     value={this.state.bikeSeller.penaltyPercentage} />
+                                    <Message severity="error" style={{float:'right',display: (this.state.bikeSeller.penaltyPercentage >100.0 || this.state.bikeSeller.penaltyPercentage<0.0 || this.state.bikeSeller.penaltyPercentage === "") && this.state.touched.penaltyPercentage ? 'inline' : 'none'} } />
                             </div> 
 
                             <div style={{ paddingTop: '5px' }}>
                                 <label htmlFor="status">Status: {this.state.bikeSeller.status}</label></div>
                             <div>
                                 
-                                <InputSwitch onLabel="activated" offLabel="deactivated" checked={this.state.bikeSeller.status === "activated" ? true : false}  onChange={(e) => { this.updateProperty('status', e.target.value) }} />
+                                <InputSwitch onLabel="activated"  offLabel="deactivated" checked={this.state.bikeSeller.status === "activated" ? true : false}  onChange={(e) => { this.updateProperty('status', e.target.value) }} />
                             </div>
                         </div>
                     }
